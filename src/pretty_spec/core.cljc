@@ -54,6 +54,13 @@
   [:group "("
    [:align (build-document f) " " (build-document (first args)) ")"]])
 
+(defn build-unknown [form]
+  (fipp-visit/visit (fipp-edn/map->EdnPrinter {:symbols fipp-clojure/default-symbols
+                                                    :print-length *print-length*
+                                                    :print-level *print-level*
+                                                    :print-meta *print-meta*})
+                    form))
+
 (defmethod build-document #?(:clj clojure.lang.ISeq :cljs cljs.core/List)
   [[f & _ :as form]]
   (cond
@@ -72,15 +79,11 @@
     (#{"?" "+" "*" "nilable"} (name f))
     (build-one-arg form)
     
-    true (fipp-visit/visit (fipp-edn/map->EdnPrinter {:symbols fipp-clojure/default-symbols
-                                                    :print-length *print-length*
-                                                    :print-level *print-level*
-                                                    :print-meta *print-meta*})
-                form)))
+    true (build-unknown form)))
 
 (defmethod build-document :default
   [x]
-  [:text x])
+  (build-unknown x))
 
 (defn pprint [form options]
   (let [doc (build-document form)]
