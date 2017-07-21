@@ -1,164 +1,89 @@
 (ns pretty-spec.core
   (:require [clojure.spec.alpha :as s]
-            [clojure.pprint :as pp])) 
+            [fipp.engine :refer [pprint-document]]
+            [fipp.clojure :as fipp-clojure]
+            [fipp.edn :as fipp-edn]
+            [fipp.visit :as fipp-visit])) 
 
+(defmulti build-document type)
 
-(defn write [s]
-  #?(:clj (.write ^java.io.Writer *out* s)
-     :cljs (-write *out* s)))
+(defn- build-arg-pairs [[f & args]]
+  [:group "("
+   [:align (build-document f) :line
+    (->> (partition 2 args)
+         (map (fn [[p1 p2]]
+                [:span (build-document p1) " " (build-document p2)]))
+         (interpose :line))
+    ")"]])
 
-(defn- pprint-arg-pairs [[f & args]]
-  (pp/pprint-logical-block
-   :prefix "(" :suffix ")"
-   (pp/pprint-indent :block 1)
-   (pp/write-out f)    
-   (write " ")
-   (pp/pprint-newline :linear)
-   (pp/print-length-loop [[[p1 p2 ] & r] (partition 2 args)]
-                         (when p1
-                           (pp/write-out p1)
-                           (write " ")
-                           (pp/write-out p2)
-                           (when r
-                             (write " ")
-                             (pp/pprint-newline :linear))
-                           (recur r)))))
+(defn- build-one-arg-and-opts [[f & args]]
+  [:group "("
+   [:align (build-document f) :line (build-document (first args))
+    (when (next args) :line)
+    (->> (partition 2 (rest args))
+         (map (fn [[optk optv]]
+                [:span (build-document optk) " " (build-document optv)]))
+         (interpose :line))
+    ")"]])
 
-(defn- pprint-one-arg-and-opts [[f & args]]
-  (pp/pprint-logical-block
-   :prefix "(" :suffix ")"
-   (pp/pprint-indent :block 1)
-   (pp/write-out f)    
-   (write " ")
-   (pp/pprint-newline :linear)
-   (pp/write-out (first args))
-   (when (next args)
-     (write " ")
-     (pp/pprint-newline :linear))
-   (pp/print-length-loop [[[optk optv] & r] (partition 2 (rest args))]
-                         (when optk
-                           (pp/write-out optk)
-                           (write " ")
-                           (pp/write-out optv)
-                           (when r
-                             (write " ")
-                             (pp/pprint-newline :linear))
-                           (recur r)))))
-(defn- pprint-args [[f & args]]
-  (pp/pprint-logical-block
-   :prefix "(" :suffix ")"
-   (pp/pprint-indent :block 1)
-   (pp/write-out f)    
-   (write " ")
-   (pp/pprint-newline :linear)
-   (pp/print-length-loop [[p & r] args]
-                         (when p
-                           (pp/write-out p)
-                           (when r
-                             (write " ")
-                             (pp/pprint-newline :linear))
-                           (recur r)))))
+(defn- build-args [[f & args]]
+  [:group "("
+   [:align (build-document f) :line 
+    (->> args
+         (map build-document)
+         (interpose :line))
+    ")"]])
 
-(defn- pprint-keys [[f & args]]
-  (pp/pprint-logical-block
-   :prefix "(" :suffix ")"
-   (pp/pprint-indent :block 1)
-   (pp/write-out f)    
-   (write " ")
-   (pp/pprint-newline :linear)
-   (pp/print-length-loop [parts (partition 2 args)]
-                         (let [[[kt ks] & r] parts]
-                          (when kt
-                            (pp/write-out kt)
-                            (write " ")
-                            (pp/pprint-logical-block
-                             :prefix "[" :suffix "]"
-                             (pp/print-length-loop [[k & rk] ks]
-                                                   (when k
-                                                     (pp/write-out k)
-                                                     (when rk
-                                                       (write " ")
-                                                       (pp/pprint-newline :linear))
-                                                     (recur rk))))
-                            (when r
-                              (pp/pprint-newline :mandatory))
-                            (recur r))))))
-(defn- pprint-one-arg [[f & args]]
-  (pp/pprint-logical-block
-   :prefix "(" :suffix ")"
-   (pp/pprint-indent :block 1)
-   (pp/write-out f)    
-   (write " ")
-   (pp/write-out (first args))))
+(defn- build-keys-vec [ks]
+  [:group "["
+   [:align (->> ks
+               (map build-document)
+               (interpose :line))]
+   "]"])
 
-(defn- pprint-multi-spec [[f & args]]
-  (let [[mm retag & multi-specs] args]
-    (pp/pprint-logical-block
-     :prefix "(" :suffix ")"
-     (pp/pprint-indent :block 1)
-     (pp/write-out f)    
-     (write " ")
-     (pp/pprint-newline :linear)
-     (pp/write-out mm)
-     (write " ")
-     (pp/pprint-newline :linear)
-     (pp/write-out retag)
-     (pp/pprint-newline :mandatory)
-     (pp/print-length-loop [[[k s] & r] multi-specs]
-                           (when k
-                             (pp/write-out k)
-                             (write " ")
-                             (pp/write-out s)
-                             (when r
-                               (pp/pprint-newline :mandatory))
-                             (recur r))))))
+(defn- build-keys [[f & args]]
+  [:group "("
+   [:align (build-document f) :line 
+    (->> (partition 2 (rest args))
+         (map (fn [[k v]]
+                [:span (build-document k) " " (build-keys-vec v)]))
+         (interpose :line))
+    ")"]])
 
-(defn- pprint-spec-list-form [[f & _ :as form]]
+(defn- build-one-arg [[f & args]]
+  [:group "("
+   [:align (build-document f) " " (build-document (first args)) ")"]])
+
+(defmethod build-document #?(:clj clojure.lang.ISeq :cljs cljs.core/List)
+  [[f & _ :as form]]
   (cond
-    (#{'clojure.spec.alpha/fspec
-       'clojure.spec.alpha/or
-       'clojure.spec.alpha/cat
-       'clojure.spec.alpha/alt} f)
-    (pprint-arg-pairs form)
+    (#{"fspec" "or" "cat" "alt"} (name f))
+    (build-arg-pairs form)
 
-    (#{'clojure.spec.alpha/coll-of
-       'clojure.spec.alpha/map-of} f)
-    (pprint-one-arg-and-opts form)
+    (#{"coll-of" "map-of"} (name f))
+    (build-one-arg-and-opts form)
 
-    (#{'clojure.spec.alpha/and
-       'clojure.spec.alpha/merge} f)
-    (pprint-args form)
+    (#{"and" "merge" "conformer"} (name f))
+    (build-args form)
 
-    (= 'clojure.spec.alpha/keys f)
-    (pprint-keys form)
+    (= "keys" (name f))
+    (build-keys form)
 
-    (#{'clojure.spec.alpha/?
-       'clojure.spec.alpha/+
-       'clojure.spec.alpha/*
-       'clojure.spec.alpha/nilable} f)
-    (pprint-one-arg form)
+    (#{"?" "+" "*" "nilable"} (name f))
+    (build-one-arg form)
     
-    (= 'clojure.spec.alpha/multi-spec f)
-    (pprint-multi-spec form)
-    
-    true (pp/with-pprint-dispatch pp/code-dispatch
-           (pp/write form))))
+    true (fipp-visit/visit (fipp-edn/map->EdnPrinter {:symbols fipp-clojure/default-symbols
+                                                    :print-length *print-length*
+                                                    :print-level *print-level*
+                                                    :print-meta *print-meta*})
+                form)))
 
-(defmulti spec-dispatch
-  "The pretty print dispatch function for pretty printing clojure.spec forms."
-  type)
+(defmethod build-document :default
+  [x]
+  [:text x])
 
-(defmethod spec-dispatch clojure.lang.ISeq
-  [form]
-  (pprint-spec-list-form form))
-
-(defmethod spec-dispatch :default
-  [form]
-  (pp/with-pprint-dispatch pp/code-dispatch
-    (pp/write form)))
-
-(defn pprint [form]
-  (pp/with-pprint-dispatch spec-dispatch
-    (pp/pprint form)))
+(defn pprint [form options]
+  (let [doc (build-document form)]
+    (pprint-document doc options)))
 
 
