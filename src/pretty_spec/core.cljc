@@ -1,8 +1,6 @@
 (ns pretty-spec.core
   (:require [clojure.spec.alpha :as s]
-            #?(:cljs [cljs.pprint :as pp]
-               :clj [clojure.pprint :as pp]))
-  #?(:cljs (:require-macros [cljs.pprint :refer [pprint-logical-block print-length-loop]]))) 
+            [clojure.pprint :as pp])) 
 
 
 (defn write [s]
