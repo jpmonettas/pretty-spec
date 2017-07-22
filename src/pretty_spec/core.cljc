@@ -3,90 +3,78 @@
             [fipp.engine :refer [pprint-document]]
             [fipp.clojure :as fipp-clojure]
             [fipp.edn :as fipp-edn]
-            [fipp.visit :as fipp-visit])) 
+            [fipp.visit :as fipp-visit :refer [visit]])) 
 
-(defmulti build-document type)
 
-(defn- build-arg-pairs [[f & args]]
+(defn- build-arg-pairs [p [f & args]]
   [:group "("
-   [:align (build-document f) :line
+   [:align (visit p f) :line
     (->> (partition 2 args)
          (map (fn [[p1 p2]]
-                [:span (build-document p1) " " (build-document p2)]))
+                [:span (visit p p1) " " (visit p p2)]))
          (interpose :line))
     ")"]])
 
-(defn- build-one-arg-and-opts [[f & args]]
+(defn- build-one-arg-and-opts [p [f & args]]
   [:group "("
-   [:align (build-document f) :line (build-document (first args))
+   [:align (visit p f) :line (visit p (first args))
     (when (next args) :line)
     (->> (partition 2 (rest args))
          (map (fn [[optk optv]]
-                [:span (build-document optk) " " (build-document optv)]))
+                [:span (visit p optk) " " (visit p optv)]))
          (interpose :line))
     ")"]])
 
-(defn- build-args [[f & args]]
+(defn- build-args [p [f & args]]
   [:group "("
-   [:align (build-document f) :line 
+   [:align (visit p f) :line 
     (->> args
-         (map build-document)
+         (map (partial visit p))
          (interpose :line))
     ")"]])
 
-(defn- build-keys-vec [ks]
+(defn- build-keys-vec [p ks]
   [:group "["
    [:align (->> ks
-               (map build-document)
-               (interpose :line))]
+                (map (partial visit p))
+                (interpose :line))]
    "]"])
 
-(defn- build-keys [[f & args]]
+(defn- build-keys [p [f & args]]
   [:group "("
-   [:align (build-document f) :line 
+   [:align (visit p f) :line 
     (->> (partition 2 (rest args))
          (map (fn [[k v]]
-                [:span (build-document k) " " (build-keys-vec v)]))
+                [:span (visit p k) " " (build-keys-vec p v)]))
          (interpose :line))
     ")"]])
 
-(defn- build-one-arg [[f & args]]
+(defn- build-one-arg [p [f & args]]
   [:group "("
-   [:align (build-document f) " " (build-document (first args)) ")"]])
-
-(defn build-unknown [form]
-  (fipp-visit/visit (fipp-edn/map->EdnPrinter {:symbols fipp-clojure/default-symbols
-                                                    :print-length *print-length*
-                                                    :print-level *print-level*
-                                                    :print-meta *print-meta*})
-                    form))
-
-(defmethod build-document #?(:clj clojure.lang.ISeq :cljs cljs.core/List)
-  [[f & _ :as form]]
-  (cond
-    (#{"fspec" "or" "cat" "alt"} (name f))
-    (build-arg-pairs form)
-
-    (#{"coll-of" "map-of"} (name f))
-    (build-one-arg-and-opts form)
-
-    (#{"and" "merge" "conformer"} (name f))
-    (build-args form)
-
-    (= "keys" (name f))
-    (build-keys form)
-
-    (#{"?" "+" "*" "nilable"} (name f))
-    (build-one-arg form)
-    
-    true (build-unknown form)))
-
-(defmethod build-document :default
-  [x]
-  (build-unknown x))
-
-(defn pprint [form options]
-  (let [doc (build-document form)]
-    (pprint-document doc options)))
+   [:align (visit p f) " " (visit p (first args)) ")"]])
 
 
+(defn build-symbol-map [dispatch]
+  (into {} (for [[pretty-fn syms] dispatch
+                 sym syms
+                 sym (cons sym [(symbol "clojure.spec.alpha" (name sym))
+                                (symbol "cljs.spec.alpha" (name sym))])]
+             [sym pretty-fn])))
+
+(def default-symbols
+  (build-symbol-map
+   {build-arg-pairs        '[fspec or cat alt]
+    build-one-arg-and-opts '[coll-of map-of]
+    build-args             '[and merge conformer]
+    build-keys             '[keys]
+    build-one-arg          '[? + * nilable]}))
+
+(defn pprint
+  ([form] (pprint form {}))
+  ([form options]
+   (let [effective-options (merge {:symbols (merge default-symbols
+                                                   fipp-clojure/default-symbols)}
+                                  options)]
+    (pprint form effective-options (fipp-edn/map->EdnPrinter effective-options))))
+  ([form options printer]
+   (pprint-document (fipp-visit/visit printer form) options)))
