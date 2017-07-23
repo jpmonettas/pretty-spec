@@ -75,6 +75,8 @@
                                  options)]
     (fipp-edn/map->EdnPrinter effective-options)))
 
+(def ^:dynamic *print-document* false)
+
 (defn pprint
   "Pretty prints a spec form.
   form as returned by (clojure.spec/form ...)
@@ -83,5 +85,10 @@
   ([form options]
    (pprint form options (spec-printer options)))
   ([form options printer]
-   (pprint-document (fipp-visit/visit printer form) options)))
+   (let [doc (fipp-visit/visit printer form)]
+     (when *print-document*
+       (prn "------------ Fipp doc ----------")
+       (fipp-edn/pprint doc)
+       (prn "------------ End Fipp doc ----------"))
+     (pprint-document doc options))))
 

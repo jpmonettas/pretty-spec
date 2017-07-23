@@ -10,13 +10,16 @@
 
   :source-paths ["src"]
   
-  :cljsbuild {
-    :builds [{:source-paths ["src"]
-              :compiler {:output-to "target/main.js"
-                         :optimizations :none
-                         :pretty-print true}}]}
+  :cljsbuild {:builds [{:id "dev"
+                        :figwheel true
+                        :source-paths ["src"]
+                        :compiler {:main pretty-spec.core
+                                   :output-to "resources/public/js/compiled/app.js"
+                                   :output-dir "resources/public/js/out"
+                                   :asset-path "js/out"
+                                   :optimizations :none}}]}
   
   :profiles {:uberjar {:aot :all}
-             :dev {:plugins [[lein-cljsbuild "1.1.6"]]
-                   :dependencies [[com.cemerick/piggieback "0.2.1"]]
+             :dev {:dependencies [[com.cemerick/piggieback "0.2.2"]
+                                  [figwheel-sidecar "0.5.11"]]
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}}})
