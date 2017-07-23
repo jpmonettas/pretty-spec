@@ -1,4 +1,4 @@
-# pretty-spec
+# Pretty-Spec
 
 A clojure.spec form pretty printer for Clojure and ClojureScript.
 
@@ -6,7 +6,7 @@ Extends [fipp](https://github.com/brandonbloom/fipp) pretty printer with rules f
 clojure.spec forms.
 
 This is just a simple library that does this one thing. Checkout [inspectable](https://github.com/jpmonettas/inspectable) 
-if you are looking for a way of reading specs by browsing them with a UI.
+if you are looking for a way of browsing specs using a GUI.
 
 Installation
 ------------
