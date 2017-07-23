@@ -1,4 +1,4 @@
-(defproject pretty-spec "0.1.0-SNAPSHOT"
+(defproject pretty-spec "0.1.0"
   :description "A pretty printer for clojure.spec forms."
   :url "https://github.com/jpmonettas/pretty-spec"
   :license {:name "Eclipse Public License"
