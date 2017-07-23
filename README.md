@@ -1,6 +1,6 @@
 # pretty-spec
 
-A clojure.spec form pretty printer.
+A clojure.spec form pretty printer for Clojure and ClojureScript.
 
 Extends [Fipp](https://github.com/brandonbloom/fipp) pretty printer with rules for printing
 clojure.spec forms.

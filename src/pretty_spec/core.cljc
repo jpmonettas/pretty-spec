@@ -43,7 +43,7 @@
 (defn- build-keys [p [f & args]]
   [:group "("
    [:align (visit p f) :line 
-    (->> (partition 2 (rest args))
+    (->> (partition 2 args)
          (map (fn [[k v]]
                 [:span (visit p k) " " (build-keys-vec p v)]))
          (interpose :line))
@@ -65,16 +65,23 @@
   (build-symbol-map
    {build-arg-pairs        '[fspec or cat alt]
     build-one-arg-and-opts '[coll-of map-of]
-    build-args             '[and merge conformer]
+    build-args             '[and merge conformer tuple]
     build-keys             '[keys]
     build-one-arg          '[? + * nilable]}))
 
+(defn spec-printer [options]
+  (let [effective-options (merge {:symbols (merge default-symbols
+                                                  fipp-clojure/default-symbols)}
+                                 options)]
+    (fipp-edn/map->EdnPrinter effective-options)))
+
 (defn pprint
+  "Pretty prints a spec form.
+  form as returned by (clojure.spec/form ...)
+  Options are the same as in https://github.com/brandonbloom/fipp"
   ([form] (pprint form {}))
   ([form options]
-   (let [effective-options (merge {:symbols (merge default-symbols
-                                                   fipp-clojure/default-symbols)}
-                                  options)]
-    (pprint form effective-options (fipp-edn/map->EdnPrinter effective-options))))
+   (pprint form options (spec-printer options)))
   ([form options printer]
    (pprint-document (fipp-visit/visit printer form) options)))
+
