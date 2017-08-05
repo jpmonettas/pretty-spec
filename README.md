@@ -14,7 +14,7 @@ Installation
 ------------
 To include the library add the following to your `:dependencies`
 
-    [pretty-spec "0.1.0"]
+    [pretty-spec "0.1.1"]
     
 Usage
 -----
