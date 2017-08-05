@@ -25,6 +25,16 @@
          (interpose :line))
     ")"]])
 
+(defn- build-two-arg-and-opts [p [f kp vp & args]]
+  [:group "("
+   [:align (visit p f) :line (visit p kp) :line (visit p vp)
+    (when (next args) :line)
+    (->> (partition 2 (rest args))
+         (map (fn [[optk optv]]
+                [:span (visit p optk) " " (visit p optv)]))
+         (interpose :line))
+    ")"]])
+
 (defn- build-args [p [f & args]]
   [:group "("
    [:align (visit p f) :line 
@@ -65,6 +75,7 @@
   (build-symbol-map
    {build-arg-pairs        '[fspec or cat alt]
     build-one-arg-and-opts '[coll-of map-of]
+    build-two-arg-and-opts '[map-of]
     build-args             '[and merge conformer tuple]
     build-keys             '[keys]
     build-one-arg          '[? + * nilable]}))
