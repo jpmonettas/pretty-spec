@@ -21,5 +21,8 @@
   
   :profiles {:uberjar {:aot :all}
              :dev {:dependencies [[com.cemerick/piggieback "0.2.2"]
-                                  [figwheel-sidecar "0.5.11"]]
+                                  [figwheel-sidecar "0.5.11"]
+                                  [com.stuartsierra/dependency "0.2.0"]
+                                  [ring/ring-spec "0.0.3"] ; Real-world specs for testing
+                                  [com.gfredericks/test.chuck "0.2.7"]]
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}}})
