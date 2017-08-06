@@ -1,15 +1,14 @@
 (ns pretty-spec.core-test
-  (:require
+  (:require [clojure.core.specs.alpha] ; side-effect: loads specs
             [clojure.spec.alpha :as s]
+            [clojure.string :as string]
             [clojure.test :refer :all]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [com.stuartsierra.dependency :as deps]
-            [pretty-spec.core :refer :all]
-            [clojure.string :as string]
-            [clojure.core.specs.alpha] ; side-effect: loads specs
-            [ring.core.spec]           ; side effect: loads specs
             [fipp.clojure :as fipp]
+            [pretty-spec.core :refer :all]
+            [ring.core.spec] ; side effect: loads specs
             ))
 
 (defn spec-dependencies [spec]
