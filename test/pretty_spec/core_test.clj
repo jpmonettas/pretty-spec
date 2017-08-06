@@ -21,31 +21,44 @@
        distinct))
 
 (defn topo-sort [specs]
-  (deps/topo-sort
-   (reduce
-    (fn [gr spec]
-      (reduce
-       (fn [g d]
-         ;; If this creates a circular reference, then
-         ;; just skip it.
-         (if (deps/depends? g d spec)
-           g
-           (deps/depend g spec d)))
-       gr
-       (spec-dependencies spec)))
-    (deps/graph)
-    specs)))
+  (let [sorted (deps/topo-sort
+                (reduce
+                 (fn [gr spec]
+                   (reduce
+                    (fn [g d]
+                      ;; If this creates a circular reference, then
+                      ;; just skip it.
+                      (if (deps/depends? g d spec)
+                        g
+                        (deps/depend g spec d)))
+                    gr
+                    (spec-dependencies spec)))
+                 (deps/graph)
+                 specs))]
+    ;; Add any specs that have no dependencies and remove dupes
+        (distinct (into sorted specs))))
 
 (defn spec-gen [prefix]
   (->> (s/registry)
        (map key)
-       (filter #(string/starts-with? (str %) (str prefix)))
+       (filter #(string/starts-with? (str %) (pr-str prefix)))
        topo-sort
        (filter keyword?)
        gen/elements))
 
 (defn ignore-whitespace [s]
-    (string/trim (string/replace s #"\s+" " ")))
+  (string/trim (string/replace s #"\s+" " ")))
+
+(s/def ::map (s/map-of keyword? any?))
+(s/def ::sorted-map (s/map-of keyword? any?
+                              :into (sorted-map)))
+(deftest test-specs
+  (checking
+   "test specs are printed without losing information"
+   100
+   [spec (spec-gen :pretty-spec.core-test)]
+   (is (= (ignore-whitespace (with-out-str (fipp/pprint (s/form spec))))
+          (ignore-whitespace (with-out-str (pprint (s/form spec))))))))
 
 (deftest clojure-core-specs
   (checking

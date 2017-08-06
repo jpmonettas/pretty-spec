@@ -29,7 +29,7 @@
   [:group "("
    [:align (visit p f) :line (visit p kp) :line (visit p vp)
     (when (next args) :line)
-    (->> (partition 2 (rest args))
+    (->> (partition 2 args)
          (map (fn [[optk optv]]
                 [:span (visit p optk) " " (visit p optv)]))
          (interpose :line))
