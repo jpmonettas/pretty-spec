@@ -3,7 +3,8 @@
             [fipp.engine :refer [pprint-document]]
             [fipp.clojure :as fipp-clojure]
             [fipp.edn :as fipp-edn]
-            [fipp.visit :as fipp-visit :refer [visit]])) 
+            [fipp.visit :as fipp-visit :refer [visit]]
+            [pretty-spec.printer :as printer])) 
 
 
 (defn- build-arg-pairs [p [f & args]]
@@ -81,17 +82,16 @@
     build-one-arg          '[? + * nilable]}))
 
 (defn spec-printer [options]
-  (let [effective-options (merge {:symbols (merge default-symbols
-                                                  fipp-clojure/default-symbols)}
-                                 options)]
-    (fipp-edn/map->EdnPrinter effective-options)))
+  (printer/map->EdnPrinter (merge {:symbols (merge default-symbols
+                                                   fipp-clojure/default-symbols)}
+                                  options)))
 
 (def ^:dynamic *print-document* false)
 
 (defn pprint
-  "Pretty prints a spec form.
-  form as returned by (clojure.spec/form ...)
-  Options are the same as in https://github.com/brandonbloom/fipp"
+  "Pretty prints a spec form as returned by (clojure.spec/form ...)
+  Options are the same as in https://github.com/brandonbloom/fipp plus 
+  :ns-aliases, a map of strings to string with ns replacements."
   ([form] (pprint form {}))
   ([form options]
    (pprint form options (spec-printer options)))
