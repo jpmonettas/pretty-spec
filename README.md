@@ -12,10 +12,11 @@ if you are looking for spec browsing and explain-data analyzing.
 
 Installation
 ------------
-To include the library add the following to your `:dependencies`
 
-    [pretty-spec "0.1.3"]
-    
+**Pretty-Spec** is available as a Maven artifact from Clojars.
+
+The latest released version is: [![Clojars Project](https://img.shields.io/clojars/v/pretty-spec.svg)](https://clojars.org/pretty-spec)<br>
+
 Usage
 -----
 
@@ -32,7 +33,7 @@ user> (pspec/pprint (s/form 'clojure.core/let))
 ;         :body (clojure.spec.alpha/* clojure.core/any?))
 ;  :ret clojure.core/any?
 ;  :fn nil)
- 
+
 nil
 ```
 
@@ -52,14 +53,14 @@ user> (clojure.pprint/pprint (s/form 'clojure.core/let))
 ;  clojure.core/any?
 ;  :fn
 ;  nil)
- 
+
 nil
 ```
 
 Options
 -------
 
-Pretty-spec pprint accepts the same options as [fipp](https://github.com/brandonbloom/fipp) pprint 
+Pretty-spec pprint accepts the same options as [fipp](https://github.com/brandonbloom/fipp) pprint
 plus :ns-aliases which you can use to make your pprint even more redable.
 
 ```clojure
@@ -72,5 +73,5 @@ user> (pspec/pprint (s/form 'clojure.core/let)
 ;  :args (s/cat :bindings :score/bindings :body (s/* any?))
 ;  :ret any?
 ;  :fn nil)
-                                                 
+
 ```
